@@ -25,6 +25,7 @@ def create_user(body: UserCreate, db: Session = Depends(get_db), _: User = Depen
         display_name=body.display_name,
         password_hash=hash_password(body.password),
         is_admin=body.is_admin,
+        color=body.color or None,
     )
     db.add(user)
     db.commit()
@@ -48,6 +49,8 @@ def update_user(
         user.password_hash = hash_password(body.password)
     if body.is_admin is not None:
         user.is_admin = body.is_admin
+    if body.color is not None:
+        user.color = body.color or None  # empty string clears the color
     db.commit()
     db.refresh(user)
     return user

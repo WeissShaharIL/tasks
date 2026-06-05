@@ -39,7 +39,8 @@ def run_migrations(_db: Session) -> None:
                     f"ALTER TABLE {table} ADD COLUMN {col} {col_type} DEFAULT {default}"
                 ))
 
-    # Future migrations go here
+    # Per-user color for their tasks (added after initial deploy)
+    _add_col("users", "color", "VARCHAR(16)", "NULL")
 
 
 def seed_admin(db: Session) -> None:

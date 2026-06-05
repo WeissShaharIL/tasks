@@ -38,18 +38,22 @@ export default function TaskCard({ task, onClick, isDragging }) {
     isDragging: isSortableDragging,
   } = useSortable({ id: task.id });
 
+  // The card accent is the assigned user's color when set, else the column color.
+  const accentColor = assignee?.color || column?.color || "#e1e5f0";
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isSortableDragging ? 0.3 : 1,
-    "--col-color": column?.color ?? "#e1e5f0",
+    "--col-color": accentColor,
+    "--user-color": assignee?.color || "var(--color-primary)",
   };
 
   if (isDragging) {
     return (
       <div
         className="task-card task-card--overlay"
-        style={{ "--col-color": column?.color ?? "#e1e5f0" }}
+        style={{ "--col-color": accentColor }}
       >
         <span className="task-card__drag-handle" aria-hidden="true">
           <GripIcon />

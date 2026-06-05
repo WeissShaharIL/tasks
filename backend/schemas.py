@@ -13,6 +13,7 @@ class UserOut(BaseModel):
     username: str
     display_name: str
     is_admin: bool
+    color: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -28,12 +29,14 @@ class UserCreate(BaseModel):
     display_name: str
     password: str
     is_admin: bool = False
+    color: Optional[str] = None
 
 
 class UserUpdate(BaseModel):
     display_name: Optional[str] = None
     password: Optional[str] = None
     is_admin: Optional[bool] = None
+    color: Optional[str] = None
 
 
 class ColumnCreate(BaseModel):

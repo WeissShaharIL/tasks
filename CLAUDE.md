@@ -86,7 +86,7 @@ JWT in **httpOnly cookie `tasks_token`** (7-day TTL, HS256). `is_admin` in the p
 **WS auth quirk**: browsers can't set headers on `new WebSocket()`, and the cookie is httpOnly so JS can't read it. Flow: after login the frontend calls `GET /api/auth/ws-token` which returns the raw JWT in JSON; it's passed as `?token=` on the WS URL. Backend `routers/ws.py` decodes it from `query_params`.
 
 ### Data models (`backend/models.py`)
-- `users` — username (unique), display_name, password_hash, is_admin, `deleted_at` (soft-delete; unique constraint persists so deleted usernames can't be reused).
+- `users` — username (unique), display_name, password_hash, is_admin, `color` (nullable hex — admin sets per user; tasks assigned to that user are tinted with it: card left-accent + assignee avatar), `deleted_at` (soft-delete; unique constraint persists so deleted usernames can't be reused).
 - `columns` (class `KanbanColumn`) — name, color (hex), position (int).
 - `tasks` — title, description, column_id (FK RESTRICT), `position` (**FLOAT** for cheap midpoint reorder), created_by, assigned_to.
 - `task_property_defs` — admin custom field defs: name, field_type (`text|select|date|user|number`), options_json (JSON array string for selects), is_required, position.

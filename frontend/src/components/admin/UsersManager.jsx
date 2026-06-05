@@ -3,11 +3,13 @@ import { api } from "../../api";
 import { useAuth } from "../../contexts/AuthContext";
 import ConfirmDialog from "../ConfirmDialog";
 
+const DEFAULT_NEW_COLOR = "#6366f1";
+
 export default function UsersManager() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({ username: "", display_name: "", password: "", is_admin: false });
+  const [form, setForm] = useState({ username: "", display_name: "", password: "", is_admin: false, color: DEFAULT_NEW_COLOR });
   const [loading, setLoading] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
@@ -26,11 +28,32 @@ export default function UsersManager() {
       await api.createUser(form);
       await load();
       setAdding(false);
-      setForm({ username: "", display_name: "", password: "", is_admin: false });
+      setForm({ username: "", display_name: "", password: "", is_admin: false, color: DEFAULT_NEW_COLOR });
     } catch (err) {
       alert(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleColorChange(userId, color) {
+    // optimistic
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, color } : u)));
+    try {
+      await api.updateUser(userId, { color });
+    } catch (err) {
+      alert(err.message);
+      await load();
+    }
+  }
+
+  async function handleClearColor(userId) {
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, color: null } : u)));
+    try {
+      await api.updateUser(userId, { color: "" });
+    } catch (err) {
+      alert(err.message);
+      await load();
     }
   }
 
@@ -54,14 +77,29 @@ export default function UsersManager() {
         <div className="admin-list">
           {users.map((u) => (
             <div key={u.id} className="admin-list__item">
+              <label className="user-color" title="צבע המשתמש">
+                <input
+                  type="color"
+                  className="user-color__input"
+                  value={u.color || "#cccccc"}
+                  onChange={(e) => handleColorChange(u.id, e.target.value)}
+                />
+                <span
+                  className="user-color__dot"
+                  style={{ background: u.color || "transparent", borderColor: u.color || "var(--color-border)" }}
+                />
+              </label>
               <span className="admin-list__name">{u.display_name}</span>
               <span className="admin-list__sub">@{u.username}</span>
               {u.is_admin && <span className="admin-list__badge">מנהל</span>}
-              {u.id !== currentUser?.id && (
-                <div className="admin-list__actions">
+              <div className="admin-list__actions">
+                {u.color && (
+                  <button className="btn-icon" onClick={() => handleClearColor(u.id)} title="הסר צבע">ללא צבע</button>
+                )}
+                {u.id !== currentUser?.id && (
                   <button className="btn-icon btn-icon--danger" onClick={() => setConfirmDeleteId(u.id)}>מחק</button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -89,6 +127,15 @@ export default function UsersManager() {
               onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
               required
             />
+            <label className="form-checkbox">
+              צבע
+              <input
+                type="color"
+                className="form-color"
+                value={form.color}
+                onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))}
+              />
+            </label>
             <label className="form-checkbox">
               <input
                 type="checkbox"

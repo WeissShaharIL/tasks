@@ -164,15 +164,17 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), #8b5cf6);
+  /* uses the assigned user's color (falls back to primary via --user-color) */
+  background: var(--user-color, var(--color-primary));
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.7rem;
   font-weight: 700;
-  box-shadow: 0 1px 3px rgba(99,102,241,0.35);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   margin-top: 1px;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.25);
 }
 
 /* ── Add Task ── */

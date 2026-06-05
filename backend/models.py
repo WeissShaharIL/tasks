@@ -12,6 +12,7 @@ class User(Base):
     display_name = Column(String(128), nullable=False, default="")
     password_hash = Column(String(255), nullable=False)
     is_admin = Column(Boolean, nullable=False, default=False)
+    color = Column(String(16), nullable=True)  # hex color for this user's tasks
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     deleted_at = Column(DateTime(timezone=True), nullable=True)
 

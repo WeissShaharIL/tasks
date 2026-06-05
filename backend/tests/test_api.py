@@ -164,6 +164,22 @@ def test_user_visible(authed, test_user):
     assert any(u["id"] == test_user["id"] for u in users)
 
 
+def test_user_color_set_and_clear(authed, test_user):
+    uid = test_user["id"]
+    # set
+    r = authed.patch(f"/api/admin/users/{uid}", json={"color": "#ff8800"})
+    assert r.status_code == 200
+    assert r.json()["color"] == "#ff8800"
+    # color shows up in the board users list too
+    board = authed.get("/api/board").json()
+    bu = next(u for u in board["users"] if u["id"] == uid)
+    assert bu["color"] == "#ff8800"
+    # clear (empty string → null)
+    r = authed.patch(f"/api/admin/users/{uid}", json={"color": ""})
+    assert r.status_code == 200
+    assert r.json()["color"] is None
+
+
 # ── Change password ───────────────────────────────────────────────────────────
 
 def test_change_password_wrong_current(authed):

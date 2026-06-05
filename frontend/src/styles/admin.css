@@ -73,6 +73,36 @@
   box-shadow: 0 0 0 2px white, 0 0 0 3px rgba(0,0,0,0.12);
 }
 
+/* User color swatch — clickable native color input behind a dot */
+.user-color {
+  position: relative;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.user-color__input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+.user-color__dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.06);
+  pointer-events: none;
+}
+
 .admin-list__name {
   flex: 1;
   font-size: 0.875rem;
