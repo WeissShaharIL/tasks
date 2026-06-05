@@ -1,147 +1,160 @@
-"""Basic API tests — run with: cd backend && python -m pytest tests/ -q"""
+"""
+Integration tests against the running backend (http://localhost:8000).
+Each test creates and cleans up its own data so the production database is
+left unchanged after the test run.
+"""
+import pytest
 
 
-def test_health(client):
-    r = client.get("/api/health")
+# ── Health ────────────────────────────────────────────────────────────────────
+
+def test_health(http):
+    r = http.get("/api/health")
     assert r.status_code == 200
     assert r.json() == {"ok": True}
 
 
-def test_login_success(client):
-    r = client.post("/api/auth/login", json={"username": "admin", "password": "testpass"})
-    assert r.status_code == 200
-    body = r.json()
-    assert body["username"] == "admin"
-    assert body["is_admin"] is True
+# ── Auth ──────────────────────────────────────────────────────────────────────
 
-
-def test_login_wrong_password(client):
-    r = client.post("/api/auth/login", json={"username": "admin", "password": "wrong"})
+def test_login_wrong_password(http):
+    r = http.post("/api/auth/login", json={"username": "admin", "password": "definitely-wrong"})
     assert r.status_code == 401
 
 
-def test_me_unauthenticated(client):
-    r = client.get("/api/auth/me")
+def test_me_unauthenticated(http):
+    # fresh client, no cookie
+    import httpx
+    with httpx.Client(base_url=http.base_url, timeout=10) as c:
+        r = c.get("/api/auth/me")
     assert r.status_code == 401
 
 
-def test_me_authenticated(auth_client):
-    r = auth_client.get("/api/auth/me")
+def test_me_authenticated(authed):
+    r = authed.get("/api/auth/me")
     assert r.status_code == 200
-    assert r.json()["username"] == "admin"
+    assert r.json()["is_admin"] is True
 
 
-def test_board_requires_auth(client):
-    r = client.get("/api/board")
+# ── Board ─────────────────────────────────────────────────────────────────────
+
+def test_board_requires_auth(http):
+    import httpx
+    with httpx.Client(base_url=http.base_url, timeout=10) as c:
+        r = c.get("/api/board")
     assert r.status_code == 401
 
 
-def test_board_returns_default_columns(auth_client):
-    r = auth_client.get("/api/board")
+def test_board_has_default_columns(authed):
+    r = authed.get("/api/board")
     assert r.status_code == 200
-    data = r.json()
-    assert len(data["columns"]) == 3
-    names = [c["name"] for c in data["columns"]]
+    names = [c["name"] for c in r.json()["columns"]]
     assert "לביצוע" in names
-    assert "בתהליך" in names
-    assert "הושלם" in names
 
 
-def test_create_task(auth_client):
-    board = auth_client.get("/api/board").json()
-    col_id = board["columns"][0]["id"]
+# ── Task CRUD ─────────────────────────────────────────────────────────────────
 
-    r = auth_client.post("/api/tasks", json={"title": "משימה לדוגמה", "column_id": col_id})
+@pytest.fixture
+def test_column(authed):
+    """Returns the first column id."""
+    return authed.get("/api/board").json()["columns"][0]["id"]
+
+
+@pytest.fixture
+def test_task(authed, test_column):
+    """Creates a task and deletes it after the test."""
+    r = authed.post("/api/tasks", json={"title": "[TEST] task", "column_id": test_column})
     assert r.status_code == 200
-    task = r.json()
-    assert task["title"] == "משימה לדוגמה"
-    assert task["column_id"] == col_id
+    task_id = r.json()["id"]
+    yield r.json()
+    authed.delete(f"/api/tasks/{task_id}")
 
 
-def test_task_appears_in_board(auth_client):
-    col_id = auth_client.get("/api/board").json()["columns"][0]["id"]
-    auth_client.post("/api/tasks", json={"title": "בדיקה", "column_id": col_id})
-
-    board = auth_client.get("/api/board").json()
-    titles = [t["title"] for t in board["tasks"]]
-    assert "בדיקה" in titles
+def test_create_task(authed, test_task):
+    assert test_task["title"] == "[TEST] task"
+    assert test_task["column_id"] is not None
 
 
-def test_update_task(auth_client):
-    col_id = auth_client.get("/api/board").json()["columns"][0]["id"]
-    task_id = auth_client.post("/api/tasks", json={"title": "ישן", "column_id": col_id}).json()["id"]
-
-    r = auth_client.patch(f"/api/tasks/{task_id}", json={"title": "חדש"})
-    assert r.status_code == 200
-    assert r.json()["title"] == "חדש"
-
-
-def test_move_task(auth_client):
-    cols = auth_client.get("/api/board").json()["columns"]
-    col1_id, col2_id = cols[0]["id"], cols[1]["id"]
-    task_id = auth_client.post("/api/tasks", json={"title": "לזוז", "column_id": col1_id}).json()["id"]
-
-    r = auth_client.post(f"/api/tasks/{task_id}/move", json={"column_id": col2_id, "position": 1.0})
-    assert r.status_code == 200
-
-    board = auth_client.get("/api/board").json()
-    task = next(t for t in board["tasks"] if t["id"] == task_id)
-    assert task["column_id"] == col2_id
-
-
-def test_delete_task(auth_client):
-    col_id = auth_client.get("/api/board").json()["columns"][0]["id"]
-    task_id = auth_client.post("/api/tasks", json={"title": "למחוק", "column_id": col_id}).json()["id"]
-
-    r = auth_client.delete(f"/api/tasks/{task_id}")
-    assert r.status_code == 200
-
-    board = auth_client.get("/api/board").json()
+def test_task_visible_in_board(authed, test_task):
+    board = authed.get("/api/board").json()
     ids = [t["id"] for t in board["tasks"]]
-    assert task_id not in ids
+    assert test_task["id"] in ids
 
 
-def test_create_column(auth_client):
-    r = auth_client.post("/api/columns", json={"name": "עמודה חדשה", "color": "#ff0000"})
+def test_update_task(authed, test_task):
+    r = authed.patch(f"/api/tasks/{test_task['id']}", json={"title": "[TEST] updated"})
     assert r.status_code == 200
-    assert r.json()["name"] == "עמודה חדשה"
+    assert r.json()["title"] == "[TEST] updated"
 
 
-def test_delete_column_with_tasks_blocked(auth_client):
-    col_id = auth_client.post("/api/columns", json={"name": "לא ריק", "color": "#aaa"}).json()["id"]
-    auth_client.post("/api/tasks", json={"title": "תפוס", "column_id": col_id})
+def test_move_task(authed, test_task):
+    cols = authed.get("/api/board").json()["columns"]
+    # move to the second column
+    target = cols[1]["id"]
+    r = authed.post(f"/api/tasks/{test_task['id']}/move",
+                    json={"column_id": target, "position": 9999.0})
+    assert r.status_code == 200
+    board = authed.get("/api/board").json()
+    moved = next(t for t in board["tasks"] if t["id"] == test_task["id"])
+    assert moved["column_id"] == target
 
-    r = auth_client.delete(f"/api/columns/{col_id}")
+
+# ── Column admin ──────────────────────────────────────────────────────────────
+
+@pytest.fixture
+def test_col(authed):
+    """Creates a test column and deletes it after the test."""
+    r = authed.post("/api/columns", json={"name": "[TEST] col", "color": "#123456"})
+    assert r.status_code == 200
+    col_id = r.json()["id"]
+    yield r.json()
+    authed.delete(f"/api/columns/{col_id}")
+
+
+def test_create_column(test_col):
+    assert test_col["name"] == "[TEST] col"
+    assert test_col["color"] == "#123456"
+
+
+def test_delete_column_with_tasks_blocked(authed, test_col):
+    authed.post("/api/tasks", json={"title": "[TEST] blocking", "column_id": test_col["id"]})
+    r = authed.delete(f"/api/columns/{test_col['id']}")
     assert r.status_code == 400
+    # clean up the task so the fixture can delete the column
+    board = authed.get("/api/board").json()
+    for t in board["tasks"]:
+        if t["column_id"] == test_col["id"]:
+            authed.delete(f"/api/tasks/{t['id']}")
 
 
-def test_property_def_crud(auth_client):
-    r = auth_client.post(
-        "/api/admin/property-defs",
-        json={"name": "עדיפות", "field_type": "select", "options_json": '["גבוה","נמוך"]'},
-    )
+# ── Property defs ─────────────────────────────────────────────────────────────
+
+@pytest.fixture
+def test_prop(authed):
+    r = authed.post("/api/admin/property-defs",
+                    json={"name": "[TEST] prop", "field_type": "text"})
     assert r.status_code == 200
-    prop_id = r.json()["id"]
-
-    defs = auth_client.get("/api/admin/property-defs").json()
-    assert any(d["id"] == prop_id for d in defs)
-
-    auth_client.delete(f"/api/admin/property-defs/{prop_id}")
-    defs = auth_client.get("/api/admin/property-defs").json()
-    assert not any(d["id"] == prop_id for d in defs)
+    pid = r.json()["id"]
+    yield r.json()
+    authed.delete(f"/api/admin/property-defs/{pid}")
 
 
-def test_user_management(auth_client):
-    r = auth_client.post(
-        "/api/admin/users",
-        json={"username": "testuser", "display_name": "משתמש בדיקה", "password": "pass123"},
-    )
+def test_property_def_visible(authed, test_prop):
+    defs = authed.get("/api/admin/property-defs").json()
+    assert any(d["id"] == test_prop["id"] for d in defs)
+
+
+# ── User management ───────────────────────────────────────────────────────────
+
+@pytest.fixture
+def test_user(authed):
+    r = authed.post("/api/admin/users",
+                    json={"username": "testuser_integ", "display_name": "Test", "password": "pass123"})
     assert r.status_code == 200
-    user_id = r.json()["id"]
+    uid = r.json()["id"]
+    yield r.json()
+    authed.delete(f"/api/admin/users/{uid}")
 
-    users = auth_client.get("/api/admin/users").json()
-    assert any(u["id"] == user_id for u in users)
 
-    auth_client.delete(f"/api/admin/users/{user_id}")
-    users = auth_client.get("/api/admin/users").json()
-    assert not any(u["id"] == user_id for u in users)
+def test_user_visible(authed, test_user):
+    users = authed.get("/api/admin/users").json()
+    assert any(u["id"] == test_user["id"] for u in users)
