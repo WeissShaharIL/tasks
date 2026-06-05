@@ -27,9 +27,7 @@ export default function KanbanBoard({ onTaskClick, myTasksOnly, currentUserId })
   function getTasksForColumn(colId) {
     let col = tasks.filter((t) => t.column_id === colId);
     if (myTasksOnly && currentUserId) {
-      col = col.filter(
-        (t) => t.assigned_to === currentUserId || t.created_by === currentUserId
-      );
+      col = col.filter((t) => t.assigned_to === currentUserId);
     }
     return col.sort((a, b) => a.position - b.position);
   }

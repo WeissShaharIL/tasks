@@ -51,6 +51,18 @@ class TaskPropertyDef(Base):
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+class TaskAttachment(Base):
+    __tablename__ = "task_attachments"
+    id = Column(Integer, primary_key=True)
+    task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False)
+    file_name = Column(String(255), nullable=False)
+    file_path = Column(String(512), nullable=False)
+    file_type = Column(String(64), nullable=False)
+    file_size = Column(Integer, nullable=True)
+    uploaded_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
 class TaskPropertyValue(Base):
     __tablename__ = "task_property_values"
     id = Column(Integer, primary_key=True)

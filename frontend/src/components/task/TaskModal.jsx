@@ -4,6 +4,7 @@ import { useBoard } from "../../contexts/BoardContext";
 import ConfirmDialog from "../ConfirmDialog";
 import AssigneeSelect from "./AssigneeSelect";
 import PropertyField from "./PropertyField";
+import TaskAttachments from "./TaskAttachments";
 
 export default function TaskModal({ task, onClose }) {
   const { columns, tasks, property_defs, dispatch } = useBoard();
@@ -142,6 +143,11 @@ export default function TaskModal({ task, onClose }) {
                 </div>
               </div>
             )}
+
+            <div className="form-group">
+              <label className="form-label">קבצים מצורפים</label>
+              <TaskAttachments taskId={task.id} />
+            </div>
 
             {property_defs.map((def) => (
               <div key={def.id} className="form-group">

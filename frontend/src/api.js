@@ -53,6 +53,25 @@ export const api = {
   deletePropertyDef: (id) => request("DELETE", `/admin/property-defs/${id}`),
   reorderPropertyDefs: (ids) => request("POST", "/admin/property-defs/reorder", { ids }),
 
+  // Attachments
+  listAttachments: (taskId) => request("GET", `/tasks/${taskId}/attachments`),
+  uploadAttachment: async (taskId, file) => {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(`${BASE}/tasks/${taskId}/attachments`, {
+      method: "POST",
+      credentials: "include",
+      body: form,
+    });
+    if (!res.ok) {
+      let detail = "שגיאה בהעלאת קובץ";
+      try { const d = await res.json(); detail = d.detail || detail; } catch {}
+      throw new Error(detail);
+    }
+    return res.json();
+  },
+  deleteAttachment: (id) => request("DELETE", `/attachments/${id}`),
+
   // Users (admin)
   listUsers: () => request("GET", "/admin/users"),
   createUser: (data) => request("POST", "/admin/users", data),
