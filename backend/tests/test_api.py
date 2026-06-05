@@ -149,9 +149,14 @@ def test_property_def_visible(authed, test_prop):
 
 @pytest.fixture
 def test_user(authed):
+    # Clean up any leftover user from a previous failed run
+    users = authed.get("/api/admin/users").json()
+    for u in users:
+        if u["username"] == "testuser_integ":
+            authed.delete(f"/api/admin/users/{u['id']}")
     r = authed.post("/api/admin/users",
                     json={"username": "testuser_integ", "display_name": "Test", "password": "pass123"})
-    assert r.status_code == 200
+    assert r.status_code == 200, r.text
     uid = r.json()["id"]
     yield r.json()
     authed.delete(f"/api/admin/users/{uid}")
