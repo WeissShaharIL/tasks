@@ -53,7 +53,7 @@ export default function UsersManager() {
             {u.is_admin && <span className="admin-list__badge">מנהל</span>}
             {u.id !== currentUser?.id && (
               <div className="admin-list__actions">
-                <button className="btn-icon btn-icon--danger" onClick={() => handleDelete(u.id)}>🗑</button>
+                <button className="btn-icon btn-icon--danger" onClick={() => handleDelete(u.id)}>מחק</button>
               </div>
             )}
           </div>

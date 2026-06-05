@@ -11,6 +11,7 @@ function reducer(state, action) {
       return { ...action.payload, loaded: true };
 
     case "TASK_CREATED":
+      if (state.tasks.some((t) => t.id === action.task.id)) return state;
       return { ...state, tasks: [...state.tasks, action.task] };
 
     case "TASK_UPDATED": {

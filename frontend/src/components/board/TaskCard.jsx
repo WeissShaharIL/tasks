@@ -3,10 +3,11 @@ import { CSS } from "@dnd-kit/utilities";
 import { useBoard } from "../../contexts/BoardContext";
 
 export default function TaskCard({ task, onClick, isDragging }) {
-  const { users } = useBoard();
+  const { users, columns } = useBoard();
   const assignee = task.assigned_to
     ? users.find((u) => u.id === task.assigned_to)
     : null;
+  const column = columns.find((c) => c.id === task.column_id);
 
   const {
     attributes,
@@ -21,11 +22,15 @@ export default function TaskCard({ task, onClick, isDragging }) {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isSortableDragging ? 0.3 : 1,
+    "--col-color": column?.color ?? "#e1e5f0",
   };
 
   if (isDragging) {
     return (
-      <div className="task-card task-card--overlay">
+      <div
+        className="task-card task-card--overlay"
+        style={{ "--col-color": column?.color ?? "#e1e5f0" }}
+      >
         <span className="task-card__title">{task.title}</span>
       </div>
     );

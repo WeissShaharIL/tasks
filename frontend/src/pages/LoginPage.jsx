@@ -27,7 +27,8 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h1 className="login-card__title">📋 משימות</h1>
+        <h1 className="login-card__title">משימות</h1>
+        <p className="login-card__subtitle">כניסה לחשבון</p>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">שם משתמש</label>

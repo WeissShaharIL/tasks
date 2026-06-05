@@ -13,7 +13,7 @@ export default function AppHeader() {
   return (
     <header className="app-header">
       <div className="app-header__logo">
-        <Link to="/">📋 משימות</Link>
+        <Link to="/">משימות</Link>
       </div>
       <div className="app-header__actions">
         {user?.is_admin && (

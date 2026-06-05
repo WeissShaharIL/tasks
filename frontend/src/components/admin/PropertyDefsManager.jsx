@@ -81,8 +81,8 @@ export default function PropertyDefsManager() {
                 <div className="admin-list__actions">
                   <button className="btn-icon" onClick={() => handleMoveUp(index)} disabled={index === 0}>↑</button>
                   <button className="btn-icon" onClick={() => handleMoveDown(index)} disabled={index === sorted.length - 1}>↓</button>
-                  <button className="btn-icon" onClick={() => setEditId(def.id)}>✏️</button>
-                  <button className="btn-icon btn-icon--danger" onClick={() => handleDelete(def.id)}>🗑</button>
+                  <button className="btn-icon" onClick={() => setEditId(def.id)}>ערוך</button>
+                  <button className="btn-icon btn-icon--danger" onClick={() => handleDelete(def.id)}>מחק</button>
                 </div>
               </>
             )}

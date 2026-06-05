@@ -1,23 +1,23 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { useState } from "react";
 import { api } from "../../api";
-import { useBoard } from "../../contexts/BoardContext";
 import AddTaskButton from "./AddTaskButton";
 import TaskCard from "./TaskCard";
 
 export default function KanbanColumn({ column, tasks, onTaskClick }) {
-  const { dispatch } = useBoard();
   const { setNodeRef, isOver } = useDroppable({ id: `col-${column.id}` });
 
   async function handleAddTask(title) {
-    const task = await api.createTask({ title, column_id: column.id });
-    dispatch({ type: "TASK_CREATED", task });
+    // Don't dispatch locally — the WS broadcast from the server handles the update
+    await api.createTask({ title, column_id: column.id });
   }
 
   return (
-    <div className={`kanban-column ${isOver ? "kanban-column--over" : ""}`}>
-      <div className="kanban-column__header" style={{ borderTopColor: column.color }}>
+    <div
+      className={`kanban-column ${isOver ? "kanban-column--over" : ""}`}
+      style={{ "--col-color": column.color }}
+    >
+      <div className="kanban-column__header">
         <span className="kanban-column__name">{column.name}</span>
         <span className="kanban-column__count">{tasks.length}</span>
       </div>
