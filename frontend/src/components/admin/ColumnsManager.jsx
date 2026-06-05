@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { api } from "../../api";
 import { useBoard } from "../../contexts/BoardContext";
+import ConfirmDialog from "../ConfirmDialog";
 import ColumnForm from "./ColumnForm";
 
 export default function ColumnsManager() {
   const { columns, dispatch } = useBoard();
   const [adding, setAdding] = useState(false);
   const [editId, setEditId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const sortedColumns = [...columns].sort((a, b) => a.position - b.position);
+  const confirmTarget = sortedColumns.find((c) => c.id === confirmDeleteId);
 
   async function handleCreate(data) {
     const col = await api.createColumn(data);
@@ -22,13 +25,14 @@ export default function ColumnsManager() {
     setEditId(null);
   }
 
-  async function handleDelete(id) {
-    if (!confirm("למחוק את העמודה?")) return;
+  async function handleDeleteConfirmed() {
     try {
-      await api.deleteColumn(id);
-      dispatch({ type: "COLUMN_DELETED", id });
+      await api.deleteColumn(confirmDeleteId);
+      dispatch({ type: "COLUMN_DELETED", id: confirmDeleteId });
     } catch (err) {
       alert(err.message);
+    } finally {
+      setConfirmDeleteId(null);
     }
   }
 
@@ -49,45 +53,50 @@ export default function ColumnsManager() {
   }
 
   return (
-    <div className="admin-section">
-      <h2 className="admin-section__title">עמודות</h2>
-      <div className="admin-list">
-        {sortedColumns.map((col, index) => (
-          <div key={col.id} className="admin-list__item">
-            {editId === col.id ? (
-              <ColumnForm
-                initial={col}
-                onSave={(data) => handleUpdate(col.id, data)}
-                onCancel={() => setEditId(null)}
-              />
-            ) : (
-              <>
-                <span
-                  className="admin-list__color-dot"
-                  style={{ background: col.color }}
+    <>
+      <div className="admin-section">
+        <h2 className="admin-section__title">עמודות</h2>
+        <div className="admin-list">
+          {sortedColumns.map((col, index) => (
+            <div key={col.id} className="admin-list__item">
+              {editId === col.id ? (
+                <ColumnForm
+                  initial={col}
+                  onSave={(data) => handleUpdate(col.id, data)}
+                  onCancel={() => setEditId(null)}
                 />
-                <span className="admin-list__name">{col.name}</span>
-                <div className="admin-list__actions">
-                  <button className="btn-icon" onClick={() => handleMoveUp(index)} disabled={index === 0}>↑</button>
-                  <button className="btn-icon" onClick={() => handleMoveDown(index)} disabled={index === sortedColumns.length - 1}>↓</button>
-                  <button className="btn-icon" onClick={() => setEditId(col.id)}>ערוך</button>
-                  <button className="btn-icon btn-icon--danger" onClick={() => handleDelete(col.id)}>מחק</button>
-                </div>
-              </>
-            )}
-          </div>
-        ))}
+              ) : (
+                <>
+                  <span className="admin-list__color-dot" style={{ background: col.color }} />
+                  <span className="admin-list__name">{col.name}</span>
+                  <div className="admin-list__actions">
+                    <button className="btn-icon" onClick={() => handleMoveUp(index)} disabled={index === 0}>↑</button>
+                    <button className="btn-icon" onClick={() => handleMoveDown(index)} disabled={index === sortedColumns.length - 1}>↓</button>
+                    <button className="btn-icon" onClick={() => setEditId(col.id)}>ערוך</button>
+                    <button className="btn-icon btn-icon--danger" onClick={() => setConfirmDeleteId(col.id)}>מחק</button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+        {adding ? (
+          <ColumnForm onSave={handleCreate} onCancel={() => setAdding(false)} />
+        ) : (
+          <button className="btn-primary" onClick={() => setAdding(true)}>+ הוסף עמודה</button>
+        )}
       </div>
-      {adding ? (
-        <ColumnForm
-          onSave={handleCreate}
-          onCancel={() => setAdding(false)}
+
+      {confirmDeleteId && (
+        <ConfirmDialog
+          title="מחיקת עמודה"
+          message={`למחוק את העמודה "${confirmTarget?.name}"?`}
+          confirmLabel="מחק"
+          danger
+          onConfirm={handleDeleteConfirmed}
+          onCancel={() => setConfirmDeleteId(null)}
         />
-      ) : (
-        <button className="btn-primary" onClick={() => setAdding(true)}>
-          + הוסף עמודה
-        </button>
       )}
-    </div>
+    </>
   );
 }

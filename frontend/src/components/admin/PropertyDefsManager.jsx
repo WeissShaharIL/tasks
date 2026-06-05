@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../../api";
 import { useBoard } from "../../contexts/BoardContext";
+import ConfirmDialog from "../ConfirmDialog";
 import PropertyDefForm from "./PropertyDefForm";
 
 const TYPE_LABELS = {
@@ -15,6 +16,7 @@ export default function PropertyDefsManager() {
   const { property_defs, dispatch } = useBoard();
   const [adding, setAdding] = useState(false);
   const [editId, setEditId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const sorted = [...property_defs].sort((a, b) => a.position - b.position);
 
@@ -35,13 +37,14 @@ export default function PropertyDefsManager() {
     setEditId(null);
   }
 
-  async function handleDelete(id) {
-    if (!confirm("למחוק שדה זה? הערכים בכל המשימות יימחקו.")) return;
+  async function handleDeleteConfirmed() {
     try {
-      await api.deletePropertyDef(id);
+      await api.deletePropertyDef(confirmDeleteId);
       await reloadDefs();
     } catch (err) {
       alert(err.message);
+    } finally {
+      setConfirmDeleteId(null);
     }
   }
 
@@ -61,7 +64,10 @@ export default function PropertyDefsManager() {
     await reloadDefs();
   }
 
+  const confirmTarget = sorted.find((d) => d.id === confirmDeleteId);
+
   return (
+    <>
     <div className="admin-section">
       <h2 className="admin-section__title">שדות מותאמים אישית</h2>
       <div className="admin-list">
@@ -82,7 +88,7 @@ export default function PropertyDefsManager() {
                   <button className="btn-icon" onClick={() => handleMoveUp(index)} disabled={index === 0}>↑</button>
                   <button className="btn-icon" onClick={() => handleMoveDown(index)} disabled={index === sorted.length - 1}>↓</button>
                   <button className="btn-icon" onClick={() => setEditId(def.id)}>ערוך</button>
-                  <button className="btn-icon btn-icon--danger" onClick={() => handleDelete(def.id)}>מחק</button>
+                  <button className="btn-icon btn-icon--danger" onClick={() => setConfirmDeleteId(def.id)}>מחק</button>
                 </div>
               </>
             )}
@@ -97,5 +103,17 @@ export default function PropertyDefsManager() {
         </button>
       )}
     </div>
+
+    {confirmDeleteId && (
+      <ConfirmDialog
+        title="מחיקת שדה"
+        message={`למחוק את השדה "${confirmTarget?.name}"? הערכים בכל המשימות יימחקו.`}
+        confirmLabel="מחק"
+        danger
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
+    )}
+    </>
   );
 }

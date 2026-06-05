@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api";
 import { useBoard } from "../../contexts/BoardContext";
+import ConfirmDialog from "../ConfirmDialog";
 import AssigneeSelect from "./AssigneeSelect";
 import PropertyField from "./PropertyField";
 
@@ -12,6 +13,7 @@ export default function TaskModal({ task, onClose }) {
   const [propValues, setPropValues] = useState({});
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const overlayRef = useRef(null);
 
   useEffect(() => {
@@ -49,8 +51,8 @@ export default function TaskModal({ task, onClose }) {
     }
   }
 
-  async function handleDelete() {
-    if (!confirm("למחוק את המשימה?")) return;
+  async function handleDeleteConfirmed() {
+    setShowConfirm(false);
     setDeleting(true);
     try {
       await api.deleteTask(task.id);
@@ -66,76 +68,89 @@ export default function TaskModal({ task, onClose }) {
   const column = columns.find((c) => c.id === task.column_id);
 
   return (
-    <div className="modal-overlay" ref={overlayRef} onClick={handleOverlayClick}>
-      <div className="modal">
-        <div className="modal__header">
-          <span className="modal__column-badge" style={{ background: column?.color }}>
-            {column?.name}
-          </span>
-          <button className="modal__close" onClick={onClose}>✕</button>
-        </div>
-
-        <div className="modal__body">
-          <div className="form-group">
-            <label className="form-label">כותרת</label>
-            <input
-              className="form-input form-input--title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
+    <>
+      <div className="modal-overlay" ref={overlayRef} onClick={handleOverlayClick}>
+        <div className="modal">
+          <div className="modal__header">
+            <span className="modal__column-badge" style={{ background: column?.color }}>
+              {column?.name}
+            </span>
+            <button className="modal__close" onClick={onClose}>✕</button>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">תיאור</label>
-            <textarea
-              className="form-textarea"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              placeholder="תיאור אופציונלי..."
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">שיוך</label>
-            <AssigneeSelect value={assignedTo} onChange={setAssignedTo} />
-          </div>
-
-          {property_defs.map((def) => (
-            <div key={def.id} className="form-group">
-              <label className="form-label">
-                {def.name}
-                {def.is_required && <span className="required-mark">*</span>}
-              </label>
-              <PropertyField
-                def={def}
-                value={propValues[def.id] ?? null}
-                onChange={(val) => setPropValues((p) => ({ ...p, [def.id]: val }))}
+          <div className="modal__body">
+            <div className="form-group">
+              <label className="form-label">כותרת</label>
+              <input
+                className="form-input form-input--title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
               />
             </div>
-          ))}
-        </div>
 
-        <div className="modal__footer">
-          <button
-            className="btn-danger"
-            onClick={handleDelete}
-            disabled={deleting || saving}
-          >
-            מחק
-          </button>
-          <div className="modal__footer-actions">
-            <button className="btn-ghost" onClick={onClose}>ביטול</button>
+            <div className="form-group">
+              <label className="form-label">תיאור</label>
+              <textarea
+                className="form-textarea"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={4}
+                placeholder="תיאור אופציונלי..."
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">שיוך</label>
+              <AssigneeSelect value={assignedTo} onChange={setAssignedTo} />
+            </div>
+
+            {property_defs.map((def) => (
+              <div key={def.id} className="form-group">
+                <label className="form-label">
+                  {def.name}
+                  {def.is_required && <span className="required-mark">*</span>}
+                </label>
+                <PropertyField
+                  def={def}
+                  value={propValues[def.id] ?? null}
+                  onChange={(val) => setPropValues((p) => ({ ...p, [def.id]: val }))}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="modal__footer">
             <button
-              className="btn-primary"
-              onClick={handleSave}
-              disabled={saving || !title.trim()}
+              className="btn-danger"
+              onClick={() => setShowConfirm(true)}
+              disabled={deleting || saving}
             >
-              {saving ? "שומר..." : "שמור"}
+              {deleting ? "מוחק..." : "מחק משימה"}
             </button>
+            <div className="modal__footer-actions">
+              <button className="btn-ghost" onClick={onClose}>ביטול</button>
+              <button
+                className="btn-primary"
+                onClick={handleSave}
+                disabled={saving || !title.trim()}
+              >
+                {saving ? "שומר..." : "שמור"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {showConfirm && (
+        <ConfirmDialog
+          title="מחיקת משימה"
+          message={`למחוק את "${title}"? לא ניתן לשחזר.`}
+          confirmLabel="מחק"
+          danger
+          onConfirm={handleDeleteConfirmed}
+          onCancel={() => setShowConfirm(false)}
+        />
+      )}
+    </>
   );
 }
