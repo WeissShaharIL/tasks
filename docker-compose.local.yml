@@ -1,0 +1,19 @@
+# Local dev override — uses SQLite so no external postgres needed.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.local.yml -p tasks up --build -d
+# App at http://localhost:3083  admin/admin
+services:
+  backend:
+    environment:
+      DATABASE_URL: sqlite:///./tasks.db
+      SECRET_KEY: local-dev-insecure
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin
+      COOKIE_SECURE: "false"
+      COOKIE_SAMESITE: "lax"
+    networks:
+      - default
+
+networks:
+  shared:
+    external: false
+    name: tasks_local_shared
