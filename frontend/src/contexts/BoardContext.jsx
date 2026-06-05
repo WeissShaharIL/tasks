@@ -1,7 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useReducer, useRef } from "react";
-import { api } from "../api";
+import { createContext, useContext, useEffect, useReducer, useRef } from "react";
+import { api, createBoardWebSocket } from "../api";
 import { useAuth } from "./AuthContext";
-import { createBoardWebSocket } from "../api";
 
 const BoardContext = createContext(null);
 
@@ -67,74 +66,83 @@ export function BoardProvider({ children }) {
   const { user } = useAuth();
   const [state, dispatch] = useReducer(reducer, INITIAL);
   const wsRef = useRef(null);
-  const wsTokenRef = useRef(null);
-
-  const reload = useCallback(async () => {
-    const data = await api.board();
-    dispatch({ type: "LOAD", payload: data });
-  }, []);
 
   useEffect(() => {
     if (!user) return;
-    reload();
+
+    // `active` is true only while THIS effect instance is alive.
+    // When the component unmounts or `user` changes, cleanup sets it false.
+    // Any in-flight reconnect timers check this before opening a new connection,
+    // preventing the race where an old onclose timer fires after a new effect
+    // already opened its own connection — which caused duplicate WS connections
+    // and therefore duplicate task_created dispatches.
+    let active = true;
+
+    function onMessage(msg) {
+      switch (msg.type) {
+        case "task_created":
+          dispatch({ type: "TASK_CREATED", task: msg.data });
+          break;
+        case "task_updated":
+          dispatch({ type: "TASK_UPDATED", task: msg.data });
+          break;
+        case "task_moved":
+          dispatch({ type: "TASK_MOVED", data: msg.data });
+          break;
+        case "task_deleted":
+          dispatch({ type: "TASK_DELETED", id: msg.data.id });
+          break;
+        case "column_created":
+          dispatch({ type: "COLUMN_CREATED", column: msg.data });
+          break;
+        case "column_updated":
+          dispatch({ type: "COLUMN_UPDATED", column: msg.data });
+          break;
+        case "column_deleted":
+          dispatch({ type: "COLUMN_DELETED", id: msg.data.id });
+          break;
+        case "columns_reordered":
+          dispatch({ type: "COLUMNS_REORDERED", data: msg.data });
+          break;
+        case "property_def_changed":
+          api.listPropertyDefs().then((defs) =>
+            dispatch({ type: "PROPERTY_DEFS_RELOAD", defs })
+          );
+          break;
+      }
+    }
+
+    function connect(token) {
+      if (!active) return;
+      const ws = createBoardWebSocket(token, onMessage);
+      wsRef.current = ws;
+      ws.onclose = () => {
+        if (!active) return; // this effect is gone — don't reconnect
+        setTimeout(() => connect(token), 3000);
+      };
+    }
+
+    api.board().then((data) => {
+      if (!active) return;
+      dispatch({ type: "LOAD", payload: data });
+    });
 
     api.wsToken().then(({ token }) => {
-      wsTokenRef.current = token;
-      const ws = createBoardWebSocket(token, handleWsMessage);
-      wsRef.current = ws;
-
-      ws.onclose = () => {
-        // Reconnect after 3s
-        setTimeout(() => {
-          if (!wsTokenRef.current) return;
-          const newWs = createBoardWebSocket(wsTokenRef.current, handleWsMessage);
-          wsRef.current = newWs;
-        }, 3000);
-      };
+      if (!active) return;
+      connect(token);
     });
 
     return () => {
-      wsTokenRef.current = null;
-      if (wsRef.current) wsRef.current.close();
+      active = false;
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
     };
   }, [user]);
 
-  function handleWsMessage(msg) {
-    switch (msg.type) {
-      case "task_created":
-        dispatch({ type: "TASK_CREATED", task: msg.data });
-        break;
-      case "task_updated":
-        dispatch({ type: "TASK_UPDATED", task: msg.data });
-        break;
-      case "task_moved":
-        dispatch({ type: "TASK_MOVED", data: msg.data });
-        break;
-      case "task_deleted":
-        dispatch({ type: "TASK_DELETED", id: msg.data.id });
-        break;
-      case "column_created":
-        dispatch({ type: "COLUMN_CREATED", column: msg.data });
-        break;
-      case "column_updated":
-        dispatch({ type: "COLUMN_UPDATED", column: msg.data });
-        break;
-      case "column_deleted":
-        dispatch({ type: "COLUMN_DELETED", id: msg.data.id });
-        break;
-      case "columns_reordered":
-        dispatch({ type: "COLUMNS_REORDERED", data: msg.data });
-        break;
-      case "property_def_changed":
-        api.listPropertyDefs().then((defs) =>
-          dispatch({ type: "PROPERTY_DEFS_RELOAD", defs })
-        );
-        break;
-    }
-  }
-
   return (
-    <BoardContext.Provider value={{ ...state, dispatch, reload }}>
+    <BoardContext.Provider value={{ ...state, dispatch }}>
       {children}
     </BoardContext.Provider>
   );

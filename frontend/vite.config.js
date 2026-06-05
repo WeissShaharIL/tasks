@@ -25,10 +25,22 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: "/index.html",
+        // Don't intercept navigation to /uploads/ — those are real files served by
+        // nginx. Without this, the service worker serves index.html for image URLs,
+        // which is why clicking uploaded images did nothing.
+        navigateFallbackDenylist: [/^\/uploads\//],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.startsWith("/api/"),
             handler: "NetworkOnly",
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith("/uploads/"),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "task-uploads",
+              expiration: { maxEntries: 200, maxAgeSeconds: 86400 },
+            },
           },
         ],
       },
