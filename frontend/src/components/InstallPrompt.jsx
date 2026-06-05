@@ -1,82 +1,79 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useInstallPrompt } from "../hooks/useInstallPrompt";
 
+/** Auto-appearing bottom banner (shown once per session if not dismissed) */
 export default function InstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [visible, setVisible] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
+  const { canShow, ios, hasNativePrompt, triggerInstall, dismiss } = useInstallPrompt();
+  const [gone, setGone] = useState(false);
 
-  useEffect(() => {
-    // Already running as installed PWA
-    if (window.matchMedia("(display-mode: standalone)").matches) return;
-    // User dismissed before
-    if (localStorage.getItem("pwa-dismissed")) return;
-    // Only on mobile devices
-    if (!/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) return;
-
-    const ua = navigator.userAgent;
-    const isiOS = /iphone|ipad|ipod/i.test(ua);
-    // CriOS/FxiOS = Chrome/Firefox on iOS — they can't install PWAs, skip
-    const isSafariIOS = isiOS && !/CriOS|FxiOS|OPiOS/i.test(ua) && !window.navigator.standalone;
-
-    if (isSafariIOS) {
-      setIsIOS(true);
-      setVisible(true);
-      return;
-    }
-
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setVisible(true);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+  if (!canShow || gone || (!ios && !hasNativePrompt)) return null;
 
   async function handleInstall() {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    setVisible(false);
-    setDeferredPrompt(null);
+    await triggerInstall();
+    setGone(true);
   }
 
   function handleDismiss() {
-    localStorage.setItem("pwa-dismissed", "1");
-    setVisible(false);
+    dismiss();
+    setGone(true);
   }
-
-  if (!visible) return null;
 
   return (
     <div className="install-banner" role="complementary" aria-label="התקנת אפליקציה">
-      <img
-        src="/icon.svg"
-        className="install-banner__icon"
-        alt="משימות"
-        width="40"
-        height="40"
-      />
+      <img src="/icon.svg" className="install-banner__icon" alt="" width="40" height="40" />
       <div className="install-banner__text">
         <span className="install-banner__title">התקן את האפליקציה</span>
         <span className="install-banner__sub">
-          {isIOS
-            ? 'לחץ על "שתף" ואז "הוסף למסך הבית"'
-            : "גישה מהירה ישירות מהמסך הראשי"}
+          {ios ? 'לחץ על "שתף" ← "הוסף למסך הבית"' : "גישה מהירה מהמסך הראשי"}
         </span>
       </div>
-      {!isIOS && (
-        <button className="install-banner__btn" onClick={handleInstall}>
-          התקן
-        </button>
+      {!ios && (
+        <button className="install-banner__btn" onClick={handleInstall}>התקן</button>
       )}
-      <button
-        className="install-banner__dismiss"
-        onClick={handleDismiss}
-        aria-label="סגור"
-      >
-        ✕
-      </button>
+      <button className="install-banner__dismiss" onClick={handleDismiss} aria-label="סגור">✕</button>
     </div>
+  );
+}
+
+/** Compact button for the board toolbar — always shown on mobile until installed */
+export function InstallButton() {
+  const { canShow, ios, hasNativePrompt, triggerInstall } = useInstallPrompt();
+  const [showIOSHelp, setShowIOSHelp] = useState(false);
+  const [done, setDone] = useState(false);
+
+  if (!canShow || done) return null;
+
+  async function handleClick() {
+    if (ios) {
+      setShowIOSHelp(true);
+      return;
+    }
+    if (hasNativePrompt) {
+      const accepted = await triggerInstall();
+      if (accepted) setDone(true);
+    } else {
+      setShowIOSHelp(true); // fallback: show manual instructions
+    }
+  }
+
+  return (
+    <>
+      <button className="toolbar-install-btn" onClick={handleClick} title="התקן כאפליקציה">
+        הורד אפליקציה
+      </button>
+      {showIOSHelp && (
+        <div className="ios-help-overlay" onClick={() => setShowIOSHelp(false)}>
+          <div className="ios-help-card" onClick={(e) => e.stopPropagation()}>
+            <p className="ios-help-card__text">
+              לחץ על כפתור <strong>שתף</strong> בתחתית Safari,
+              ואחר כך בחר <strong>"הוסף למסך הבית"</strong>
+            </p>
+            <button className="btn-primary btn-full" onClick={() => setShowIOSHelp(false)}>
+              הבנתי
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

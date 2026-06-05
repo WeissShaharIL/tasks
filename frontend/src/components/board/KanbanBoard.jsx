@@ -12,32 +12,40 @@ import { useBoard } from "../../contexts/BoardContext";
 import KanbanColumn from "./KanbanColumn";
 import TaskCard from "./TaskCard";
 
-export default function KanbanBoard({ onTaskClick }) {
+// Touch devices need a long-press delay so scroll doesn't fight drag
+const isCoarsePointer =
+  typeof window !== "undefined" &&
+  window.matchMedia("(pointer: coarse)").matches;
+
+export default function KanbanBoard({ onTaskClick, myTasksOnly, currentUserId }) {
   const { columns, tasks, dispatch } = useBoard();
   const [activeTask, setActiveTask] = useState(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, {
+      activationConstraint: isCoarsePointer
+        ? { delay: 250, tolerance: 8 }  // long-press on touch: 250ms hold
+        : { distance: 5 },              // instant on mouse
+    })
   );
 
   const sortedColumns = [...columns].sort((a, b) => a.position - b.position);
 
   function getTasksForColumn(colId) {
-    return tasks
-      .filter((t) => t.column_id === colId)
-      .sort((a, b) => a.position - b.position);
+    let col = tasks.filter((t) => t.column_id === colId);
+    if (myTasksOnly && currentUserId) {
+      col = col.filter(
+        (t) => t.assigned_to === currentUserId || t.created_by === currentUserId
+      );
+    }
+    return col.sort((a, b) => a.position - b.position);
   }
 
   function computeNewPosition(columnId, overId, activeId) {
     const colTasks = getTasksForColumn(columnId).filter((t) => t.id !== activeId);
     if (colTasks.length === 0) return 1.0;
-
     const overIndex = colTasks.findIndex((t) => t.id === overId);
-    if (overIndex === -1) {
-      // Dropped on empty column area → append
-      return colTasks[colTasks.length - 1].position + 1.0;
-    }
-
+    if (overIndex === -1) return colTasks[colTasks.length - 1].position + 1.0;
     const prev = colTasks[overIndex - 1];
     const next = colTasks[overIndex];
     if (!prev) return next.position - 1.0;
@@ -45,8 +53,7 @@ export default function KanbanBoard({ onTaskClick }) {
   }
 
   function handleDragStart(event) {
-    const task = tasks.find((t) => t.id === event.active.id);
-    setActiveTask(task || null);
+    setActiveTask(tasks.find((t) => t.id === event.active.id) || null);
   }
 
   function handleDragEnd(event) {
@@ -59,9 +66,7 @@ export default function KanbanBoard({ onTaskClick }) {
     const task = tasks.find((t) => t.id === activeId);
     if (!task) return;
 
-    // Determine target column
-    let targetColId = null;
-    // over.id could be a column id (string "col-X") or a task id (number)
+    let targetColId;
     if (typeof overId === "string" && overId.startsWith("col-")) {
       targetColId = parseInt(overId.replace("col-", ""), 10);
     } else {
@@ -75,14 +80,8 @@ export default function KanbanBoard({ onTaskClick }) {
       activeId
     );
 
-    // Optimistic update
-    dispatch({
-      type: "TASK_MOVED",
-      data: { id: activeId, column_id: targetColId, position: newPosition },
-    });
-
+    dispatch({ type: "TASK_MOVED", data: { id: activeId, column_id: targetColId, position: newPosition } });
     api.moveTask(activeId, targetColId, newPosition).catch(() => {
-      // On error, reload board to restore correct state
       api.board().then((data) => dispatch({ type: "LOAD", payload: data }));
     });
   }

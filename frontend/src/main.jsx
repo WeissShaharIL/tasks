@@ -1,3 +1,11 @@
+// Capture the PWA install event before React boots — it can fire very early
+window.__pwaPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  window.__pwaPrompt = e;
+  window.dispatchEvent(new Event("pwa-prompt-ready"));
+});
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
