@@ -321,3 +321,132 @@ html, body {
   display: flex;
   gap: 0.5rem;
 }
+
+/* ── Install banner ── */
+.install-banner {
+  position: fixed;
+  bottom: 0;
+  inset-inline: 0;
+  z-index: 50;
+  background: var(--color-header-bg);
+  border-top: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  padding-bottom: max(0.875rem, env(safe-area-inset-bottom));
+  animation: banner-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes banner-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.install-banner__icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.08);
+}
+
+.install-banner__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.install-banner__title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #ffffff;
+  overflow-wrap: break-word;
+}
+
+.install-banner__sub {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.55);
+  line-height: 1.4;
+  overflow-wrap: break-word;
+}
+
+.install-banner__btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 44px;
+  padding: 0 1.25rem;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s;
+}
+.install-banner__btn:active { background: var(--color-primary-hover); }
+
+.install-banner__dismiss {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.45);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.install-banner__dismiss:active {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+}
+
+/* ── Mobile overrides ── */
+@media (max-width: 600px) {
+  /* Unlock the fixed-height layout so the page scrolls naturally on mobile */
+  .page-layout {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  /* Tighter header; hide display name (visible in modal/board context) */
+  .app-header {
+    padding: 0 0.875rem;
+    height: 52px;
+  }
+  .app-header__user { display: none; }
+
+  /* Login card: less horizontal padding on narrow screens */
+  .login-card {
+    padding: 2rem 1.25rem;
+    border-radius: 12px;
+  }
+
+  /* All interactive buttons meet 44px touch minimum */
+  .btn-primary,
+  .btn-ghost,
+  .btn-danger {
+    min-height: 44px;
+  }
+
+  /* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
+  .form-input,
+  .form-select,
+  .form-textarea {
+    font-size: 16px;
+  }
+}

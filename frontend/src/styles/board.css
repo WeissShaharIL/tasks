@@ -203,3 +203,73 @@
   display: flex;
   gap: 0.4rem;
 }
+
+/* ── Mobile: columns stack top-to-bottom ── */
+@media (max-width: 600px) {
+  /* Allow the board area to grow with content instead of clipping */
+  .board-container {
+    flex: none;
+    overflow: visible;
+    padding: 0.75rem 0.75rem 7rem; /* bottom clearance for install banner */
+  }
+
+  /* Switch from horizontal row to vertical stack */
+  .kanban-board {
+    flex-direction: column;
+    overflow: visible;
+    height: auto;
+    gap: 0.75rem;
+    padding-bottom: 0;
+  }
+
+  /* Full-width column, no fixed height cap */
+  .kanban-column {
+    flex: none;
+    width: 100%;
+    max-height: none;
+    backdrop-filter: none; /* skip blur — expensive on mid-range Android */
+  }
+
+  .kanban-column__header {
+    padding: 0.75rem 0.875rem;
+    border-radius: 12px 12px 0 0;
+  }
+
+  /* Cards expand fully — page scroll handles overflow */
+  .kanban-column__cards {
+    overflow-y: visible;
+    max-height: none;
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  /* Bigger tap target, active feedback instead of hover */
+  .task-card {
+    padding: 0.875rem 1rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .task-card:hover {
+    transform: none;
+    box-shadow: var(--shadow-xs);
+  }
+  .task-card:active {
+    transform: scale(0.98);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* 44px minimum touch target for the add button */
+  .add-task-btn {
+    min-height: 44px;
+    font-size: 0.9rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .add-task-btn:active {
+    background: var(--color-primary-subtle);
+    color: var(--color-primary);
+  }
+
+  /* Prevent iOS input zoom inside the add-task form */
+  .add-task-form__input {
+    font-size: 16px;
+  }
+}

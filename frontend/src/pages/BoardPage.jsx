@@ -1,5 +1,6 @@
 import { useState } from "react";
 import AppHeader from "../components/AppHeader";
+import InstallPrompt from "../components/InstallPrompt";
 import KanbanBoard from "../components/board/KanbanBoard";
 import TaskModal from "../components/task/TaskModal";
 import { useBoard } from "../contexts/BoardContext";
@@ -26,6 +27,7 @@ export default function BoardPage() {
       {selectedTask && (
         <TaskModal task={selectedTask} onClose={() => setSelectedTask(null)} />
       )}
+      <InstallPrompt />
     </div>
   );
 }
