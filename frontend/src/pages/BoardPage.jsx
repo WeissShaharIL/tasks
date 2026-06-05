@@ -11,6 +11,7 @@ export default function BoardPage() {
   const { user } = useAuth();
   const [selectedTask, setSelectedTask] = useState(null);
   const [myTasksOnly, setMyTasksOnly] = useState(false);
+  const [search, setSearch] = useState("");
 
   if (!loaded) {
     return (
@@ -26,6 +27,24 @@ export default function BoardPage() {
       <AppHeader />
 
       <div className="board-toolbar">
+        <div className="board-search">
+          <input
+            type="search"
+            className="board-search__input"
+            placeholder="חיפוש משימות..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button
+              className="board-search__clear"
+              onClick={() => setSearch("")}
+              aria-label="נקה חיפוש"
+            >
+              ✕
+            </button>
+          )}
+        </div>
         <button
           className={`board-toolbar__filter ${myTasksOnly ? "board-toolbar__filter--active" : ""}`}
           onClick={() => setMyTasksOnly((v) => !v)}
@@ -40,6 +59,7 @@ export default function BoardPage() {
           onTaskClick={setSelectedTask}
           myTasksOnly={myTasksOnly}
           currentUserId={user?.id}
+          search={search}
         />
       </main>
 

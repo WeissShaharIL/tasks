@@ -243,6 +243,58 @@
   gap: 0.5rem;
 }
 
+.board-search {
+  position: relative;
+  flex: 1;
+  max-width: 320px;
+}
+
+.board-search__input {
+  width: 100%;
+  padding: 0.4rem 0.85rem;
+  padding-inline-end: 2rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  background: var(--color-surface-raised);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.board-search__input:focus {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+/* Hide the native search clear (we render our own) */
+.board-search__input::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+.board-search__clear {
+  position: absolute;
+  inset-inline-end: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  border: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 0.6rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.board-search__clear:hover {
+  background: var(--color-text-subtle);
+  color: #fff;
+}
+
 .board-toolbar__filter {
   background: var(--color-surface-raised);
   border: 1.5px solid var(--color-border);
@@ -323,6 +375,16 @@
 @media (max-width: 600px) {
   .board-toolbar {
     padding: 0.5rem 0.75rem;
+    flex-wrap: wrap;
+  }
+  .board-search {
+    flex: 1 1 100%;
+    max-width: none;
+    order: -1;
+  }
+  .board-search__input {
+    font-size: 16px; /* prevent iOS focus zoom */
+    min-height: 40px;
   }
   .board-toolbar__filter,
   .toolbar-install-btn {

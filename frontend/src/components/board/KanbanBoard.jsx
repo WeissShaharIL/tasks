@@ -12,7 +12,7 @@ import { useBoard } from "../../contexts/BoardContext";
 import KanbanColumn from "./KanbanColumn";
 import TaskCard from "./TaskCard";
 
-export default function KanbanBoard({ onTaskClick, myTasksOnly, currentUserId }) {
+export default function KanbanBoard({ onTaskClick, myTasksOnly, currentUserId, search }) {
   const { columns, tasks, dispatch } = useBoard();
   const [activeTask, setActiveTask] = useState(null);
 
@@ -22,12 +22,21 @@ export default function KanbanBoard({ onTaskClick, myTasksOnly, currentUserId })
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
+  const query = (search || "").trim().toLowerCase();
+
   const sortedColumns = [...columns].sort((a, b) => a.position - b.position);
 
   function getTasksForColumn(colId) {
     let col = tasks.filter((t) => t.column_id === colId);
     if (myTasksOnly && currentUserId) {
       col = col.filter((t) => t.assigned_to === currentUserId);
+    }
+    if (query) {
+      col = col.filter(
+        (t) =>
+          t.title.toLowerCase().includes(query) ||
+          (t.description || "").toLowerCase().includes(query)
+      );
     }
     return col.sort((a, b) => a.position - b.position);
   }
