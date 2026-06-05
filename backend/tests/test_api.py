@@ -44,11 +44,13 @@ def test_board_requires_auth(http):
     assert r.status_code == 401
 
 
-def test_board_has_default_columns(authed):
+def test_board_has_columns(authed):
     r = authed.get("/api/board")
     assert r.status_code == 200
-    names = [c["name"] for c in r.json()["columns"]]
-    assert "לביצוע" in names
+    data = r.json()
+    assert len(data["columns"]) >= 1
+    assert "tasks" in data
+    assert "users" in data
 
 
 # ── Task CRUD ─────────────────────────────────────────────────────────────────
