@@ -105,6 +105,45 @@
   gap: 0.5rem;
 }
 
+/* ── Move to column picker ── */
+.column-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.column-picker__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--col-color, var(--color-border));
+  background: transparent;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 40px;
+}
+.column-picker__btn::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--col-color, var(--color-border));
+  flex-shrink: 0;
+}
+.column-picker__btn:hover:not(:disabled),
+.column-picker__btn:active:not(:disabled) {
+  background: color-mix(in srgb, var(--col-color, var(--color-border)) 12%, transparent);
+}
+.column-picker__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* ── Confirm Dialog ── */
 .confirm-overlay {
   position: fixed;

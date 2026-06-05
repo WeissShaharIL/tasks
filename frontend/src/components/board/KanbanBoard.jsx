@@ -12,21 +12,14 @@ import { useBoard } from "../../contexts/BoardContext";
 import KanbanColumn from "./KanbanColumn";
 import TaskCard from "./TaskCard";
 
-// Touch devices need a long-press delay so scroll doesn't fight drag
-const isCoarsePointer =
-  typeof window !== "undefined" &&
-  window.matchMedia("(pointer: coarse)").matches;
-
 export default function KanbanBoard({ onTaskClick, myTasksOnly, currentUserId }) {
   const { columns, tasks, dispatch } = useBoard();
   const [activeTask, setActiveTask] = useState(null);
 
+  // touch-action:none on the drag handle (TaskCard) prevents scroll conflicts,
+  // so distance:5 works correctly on both mouse and touch.
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: isCoarsePointer
-        ? { delay: 250, tolerance: 8 }  // long-press on touch: 250ms hold
-        : { distance: 5 },              // instant on mouse
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
   const sortedColumns = [...columns].sort((a, b) => a.position - b.position);

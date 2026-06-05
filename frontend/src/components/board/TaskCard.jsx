@@ -2,6 +2,25 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useBoard } from "../../contexts/BoardContext";
 
+function GripIcon() {
+  return (
+    <svg
+      width="10"
+      height="16"
+      viewBox="0 0 10 16"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <circle cx="3" cy="3"  r="1.5" />
+      <circle cx="7" cy="3"  r="1.5" />
+      <circle cx="3" cy="8"  r="1.5" />
+      <circle cx="7" cy="8"  r="1.5" />
+      <circle cx="3" cy="13" r="1.5" />
+      <circle cx="7" cy="13" r="1.5" />
+    </svg>
+  );
+}
+
 export default function TaskCard({ task, onClick, isDragging }) {
   const { users, columns } = useBoard();
   const assignee = task.assigned_to
@@ -13,6 +32,7 @@ export default function TaskCard({ task, onClick, isDragging }) {
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging: isSortableDragging,
@@ -31,6 +51,9 @@ export default function TaskCard({ task, onClick, isDragging }) {
         className="task-card task-card--overlay"
         style={{ "--col-color": column?.color ?? "#e1e5f0" }}
       >
+        <span className="task-card__drag-handle" aria-hidden="true">
+          <GripIcon />
+        </span>
         <span className="task-card__title">{task.title}</span>
       </div>
     );
@@ -41,11 +64,22 @@ export default function TaskCard({ task, onClick, isDragging }) {
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...listeners}
       className="task-card"
       onClick={onClick}
     >
+      {/* Drag handle — touch-action:none in CSS prevents scroll conflict */}
+      <span
+        ref={setActivatorNodeRef}
+        {...listeners}
+        className="task-card__drag-handle"
+        onClick={(e) => e.stopPropagation()}
+        aria-label="גרור משימה"
+      >
+        <GripIcon />
+      </span>
+
       <span className="task-card__title">{task.title}</span>
+
       {assignee && (
         <span className="task-card__assignee" title={assignee.display_name}>
           {assignee.display_name.charAt(0)}

@@ -124,12 +124,39 @@
   opacity: 0.95;
 }
 
+.task-card__drag-handle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  /* touch-action:none is the critical rule — tells the browser
+     not to claim this touch for scroll, so dnd-kit gets it */
+  touch-action: none;
+  cursor: grab;
+  color: var(--color-text-subtle);
+  opacity: 0.4;
+  border-radius: 3px;
+  padding: 2px;
+  margin-inline-end: 4px;
+  transition: opacity 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.task-card:hover .task-card__drag-handle,
+.task-card__drag-handle:active {
+  opacity: 1;
+  color: var(--color-text-muted);
+}
+
 .task-card__title {
   font-size: 0.875rem;
   line-height: 1.45;
   flex: 1;
   color: var(--color-text);
   font-weight: 450;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .task-card__assignee {
@@ -343,8 +370,14 @@
 
   /* Bigger tap target, active feedback instead of hover */
   .task-card {
-    padding: 0.875rem 1rem;
+    padding: 0.75rem 0.875rem;
     -webkit-tap-highlight-color: transparent;
+  }
+  /* Larger handle on mobile — easier to grab */
+  .task-card__drag-handle {
+    width: 32px;
+    min-height: 44px;
+    opacity: 0.6;
   }
   .task-card:hover {
     transform: none;

@@ -6,7 +6,7 @@ import AssigneeSelect from "./AssigneeSelect";
 import PropertyField from "./PropertyField";
 
 export default function TaskModal({ task, onClose }) {
-  const { columns, property_defs, dispatch } = useBoard();
+  const { columns, tasks, property_defs, dispatch } = useBoard();
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
   const [assignedTo, setAssignedTo] = useState(task.assigned_to);
@@ -51,6 +51,23 @@ export default function TaskModal({ task, onClose }) {
     }
   }
 
+  async function handleMoveToColumn(columnId) {
+    const tasksInCol = tasks.filter((t) => t.column_id === columnId);
+    const lastPos =
+      tasksInCol.length > 0
+        ? Math.max(...tasksInCol.map((t) => t.position)) + 1.0
+        : 1.0;
+    setSaving(true);
+    try {
+      await api.moveTask(task.id, columnId, lastPos);
+      onClose();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleDeleteConfirmed() {
     setShowConfirm(false);
     setDeleting(true);
@@ -66,6 +83,9 @@ export default function TaskModal({ task, onClose }) {
   }
 
   const column = columns.find((c) => c.id === task.column_id);
+  const otherColumns = [...columns]
+    .sort((a, b) => a.position - b.position)
+    .filter((c) => c.id !== task.column_id);
 
   return (
     <>
@@ -94,7 +114,7 @@ export default function TaskModal({ task, onClose }) {
                 className="form-textarea"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={4}
+                rows={3}
                 placeholder="תיאור אופציונלי..."
               />
             </div>
@@ -103,6 +123,25 @@ export default function TaskModal({ task, onClose }) {
               <label className="form-label">שיוך</label>
               <AssigneeSelect value={assignedTo} onChange={setAssignedTo} />
             </div>
+
+            {otherColumns.length > 0 && (
+              <div className="form-group">
+                <label className="form-label">העבר לעמודה</label>
+                <div className="column-picker">
+                  {otherColumns.map((col) => (
+                    <button
+                      key={col.id}
+                      className="column-picker__btn"
+                      style={{ "--col-color": col.color }}
+                      onClick={() => handleMoveToColumn(col.id)}
+                      disabled={saving}
+                    >
+                      {col.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {property_defs.map((def) => (
               <div key={def.id} className="form-group">
@@ -125,7 +164,7 @@ export default function TaskModal({ task, onClose }) {
               onClick={() => setShowConfirm(true)}
               disabled={deleting || saving}
             >
-              {deleting ? "מוחק..." : "מחק משימה"}
+              {deleting ? "מוחק..." : "מחק"}
             </button>
             <div className="modal__footer-actions">
               <button className="btn-ghost" onClick={onClose}>ביטול</button>
