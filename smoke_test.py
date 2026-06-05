@@ -50,8 +50,29 @@ print(f"\nSmoke test → {BASE}\n")
 check("GET /api/health", f"{BASE}/api/health", contains='"ok":true')
 
 # Auth — wrong password returns 401
-check("POST /api/auth/login (bad pass)", f"{BASE}/api/auth/login",
-      expected_status=401)
+try:
+    import urllib.parse
+    login_data = json.dumps({"username": "admin", "password": "wrong"}).encode()
+    req = urllib.request.Request(
+        f"{BASE}/api/auth/login",
+        data=login_data,
+        headers={"Content-Type": "application/json", "User-Agent": "smoke-test/1.0"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        status = resp.status
+except urllib.error.HTTPError as e:
+    status = e.code
+except Exception as e:
+    print(f"  {FAIL} POST /api/auth/login (bad pass): {e}")
+    errors += 1
+    status = -1
+
+if status == 401:
+    print(f"  {OK} POST /api/auth/login (bad pass) (401)")
+elif status != -1:
+    print(f"  {FAIL} POST /api/auth/login (bad pass): expected 401, got {status}")
+    errors += 1
 
 # Frontend served
 check("GET /  (React app)", f"{BASE}/", contains="<html")
