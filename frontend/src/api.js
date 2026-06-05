@@ -26,6 +26,8 @@ export const api = {
   logout: () => request("POST", "/auth/logout"),
   me: () => request("GET", "/auth/me"),
   wsToken: () => request("GET", "/auth/ws-token"),
+  changePassword: (current_password, new_password) =>
+    request("POST", "/auth/change-password", { current_password, new_password }),
 
   // Board
   board: () => request("GET", "/board"),

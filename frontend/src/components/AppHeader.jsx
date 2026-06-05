@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import ChangePasswordModal from "./ChangePasswordModal";
 
 export default function AppHeader() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [showChangePw, setShowChangePw] = useState(false);
 
   async function handleLogout() {
     await logout();
@@ -22,10 +25,14 @@ export default function AppHeader() {
           </Link>
         )}
         <span className="app-header__user">{user?.display_name}</span>
+        <button className="btn-ghost" onClick={() => setShowChangePw(true)}>
+          סיסמה
+        </button>
         <button className="btn-ghost" onClick={handleLogout}>
           התנתק
         </button>
       </div>
+      {showChangePw && <ChangePasswordModal onClose={() => setShowChangePw(false)} />}
     </header>
   );
 }

@@ -162,3 +162,32 @@ def test_user(authed):
 def test_user_visible(authed, test_user):
     users = authed.get("/api/admin/users").json()
     assert any(u["id"] == test_user["id"] for u in users)
+
+
+# ── Change password ───────────────────────────────────────────────────────────
+
+def test_change_password_wrong_current(authed):
+    r = authed.post("/api/auth/change-password",
+                    json={"current_password": "definitely-wrong", "new_password": "whatever123"})
+    assert r.status_code == 400
+
+
+def test_change_password_roundtrip(authed):
+    import os
+    BASE = os.environ.get("TEST_BASE_URL", "http://localhost:8000")
+    pw = os.environ.get("ADMIN_PASSWORD", "")
+    # change to a temp password, then change back, verifying login works each way
+    r = authed.post("/api/auth/change-password",
+                    json={"current_password": pw, "new_password": "tmp_pw_9931"})
+    assert r.status_code == 200, r.text
+    import httpx
+    # login with the new password works
+    r2 = httpx.post(f"{BASE}/api/auth/login",
+                    json={"username": "admin", "password": "tmp_pw_9931"}, timeout=10)
+    assert r2.status_code == 200
+    # restore original password using the new session
+    token = r2.cookies.get("tasks_token")
+    r3 = httpx.post(f"{BASE}/api/auth/change-password",
+                    headers={"Cookie": f"tasks_token={token}"},
+                    json={"current_password": "tmp_pw_9931", "new_password": pw}, timeout=10)
+    assert r3.status_code == 200

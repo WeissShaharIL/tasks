@@ -4,11 +4,11 @@ from sqlalchemy.orm import Session
 
 from auth import (
     COOKIE_NAME, SECRET_KEY, ALGORITHM,
-    create_token, verify_password, get_current_user,
+    create_token, verify_password, hash_password, get_current_user,
 )
 from db import get_db
 from models import User
-from schemas import LoginRequest, UserOut
+from schemas import ChangePasswordRequest, LoginRequest, UserOut
 
 router = APIRouter()
 
@@ -42,6 +42,21 @@ def logout(response: Response, _: User = Depends(get_current_user)):
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)):
     return user
+
+
+@router.post("/change-password")
+def change_password(
+    body: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if not verify_password(body.current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="הסיסמה הנוכחית שגויה")
+    if len(body.new_password) < 4:
+        raise HTTPException(status_code=400, detail="הסיסמה החדשה קצרה מדי")
+    user.password_hash = hash_password(body.new_password)
+    db.commit()
+    return {"ok": True}
 
 
 @router.get("/ws-token")

@@ -18,6 +18,11 @@ class UserOut(BaseModel):
         from_attributes = True
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class UserCreate(BaseModel):
     username: str
     display_name: str
