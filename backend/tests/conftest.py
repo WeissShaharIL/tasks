@@ -1,56 +1,48 @@
 import os
+import tempfile
+
+# Set env vars before any project modules are imported
+_db_file = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+os.environ["DATABASE_URL"] = f"sqlite:///{_db_file.name}"
+os.environ["SECRET_KEY"] = "test-secret-key"
+os.environ["ADMIN_USERNAME"] = "admin"
+os.environ["ADMIN_PASSWORD"] = "testpass"
+os.environ["UPLOAD_DIR"] = "/tmp/tasks_test_uploads"
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
-os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
-os.environ.setdefault("SECRET_KEY", "test-secret-key")
-os.environ.setdefault("ADMIN_USERNAME", "admin")
-os.environ.setdefault("ADMIN_PASSWORD", "testpass")
-os.environ.setdefault("UPLOAD_DIR", "/tmp/tasks_test_uploads")
-
-from db import Base, get_db  # noqa: E402
-from main import app           # noqa: E402
-
-engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
-TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+import db as db_module
+import models  # noqa: F401 — ensures all tables are registered
+from db import Base, SessionLocal, engine
+from main import app
 
 
-@pytest.fixture(scope="function")
-def client():
+@pytest.fixture(autouse=True)
+def reset_db():
+    """Create all tables before each test, drop them after."""
     Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
 
-    def override_get_db():
-        db = TestSession()
-        try:
-            yield db
-        finally:
-            db.close()
 
-    app.dependency_overrides[get_db] = override_get_db
-
-    # Run startup seed
-    import models  # noqa: F401
+@pytest.fixture
+def client(reset_db):
     from bootstrap import run_migrations, seed_admin, seed_default_columns
-    db = TestSession()
+    db = SessionLocal()
     try:
         run_migrations(db)
         seed_admin(db)
         seed_default_columns(db)
     finally:
         db.close()
-
-    with TestClient(app) as c:
+    with TestClient(app, raise_server_exceptions=True) as c:
         yield c
-
-    app.dependency_overrides.clear()
-    Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture
 def auth_client(client):
-    """TestClient pre-authenticated as admin."""
-    resp = client.post("/api/auth/login", json={"username": "admin", "password": "testpass"})
-    assert resp.status_code == 200
+    """Pre-authenticated admin client."""
+    r = client.post("/api/auth/login", json={"username": "admin", "password": "testpass"})
+    assert r.status_code == 200, r.text
     return client
