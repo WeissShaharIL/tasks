@@ -118,10 +118,23 @@
   border-inline-start-color: var(--col-color, var(--color-primary));
 }
 
+/* Ticket tinted by the assigned user's color (whole card, kept light for readability) */
+.task-card--colored {
+  background: color-mix(in srgb, var(--ticket-color) 16%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--ticket-color) 35%, var(--color-border));
+}
+.task-card--colored:hover {
+  background: color-mix(in srgb, var(--ticket-color) 22%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--ticket-color) 45%, var(--color-border));
+}
+
 .task-card--overlay {
   box-shadow: var(--shadow-lg);
   transform: rotate(2deg) scale(1.02);
   opacity: 0.95;
+}
+.task-card--overlay.task-card--colored {
+  background: color-mix(in srgb, var(--ticket-color) 16%, var(--color-surface));
 }
 
 .task-card__drag-handle {

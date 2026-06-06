@@ -38,22 +38,27 @@ export default function TaskCard({ task, onClick, isDragging }) {
     isDragging: isSortableDragging,
   } = useSortable({ id: task.id });
 
-  // The card accent is the assigned user's color when set, else the column color.
-  const accentColor = assignee?.color || column?.color || "#e1e5f0";
+  // When the assigned user has a color, the whole ticket is tinted with it.
+  // Otherwise the left accent uses the column color.
+  const userColor = assignee?.color || null;
+  const accentColor = userColor || column?.color || "#e1e5f0";
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isSortableDragging ? 0.3 : 1,
     "--col-color": accentColor,
-    "--user-color": assignee?.color || "var(--color-primary)",
+    "--user-color": userColor || "var(--color-primary)",
+    "--ticket-color": userColor || "transparent",
   };
+
+  const cardClass = `task-card${userColor ? " task-card--colored" : ""}`;
 
   if (isDragging) {
     return (
       <div
-        className="task-card task-card--overlay"
-        style={{ "--col-color": accentColor }}
+        className={`${cardClass} task-card--overlay`}
+        style={{ "--col-color": accentColor, "--ticket-color": userColor || "transparent" }}
       >
         <span className="task-card__drag-handle" aria-hidden="true">
           <GripIcon />
@@ -68,7 +73,7 @@ export default function TaskCard({ task, onClick, isDragging }) {
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className="task-card"
+      className={cardClass}
       onClick={onClick}
     >
       {/* Drag handle — touch-action:none in CSS prevents scroll conflict */}

@@ -1,15 +1,24 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { api } from "../../api";
+import { useAuth } from "../../contexts/AuthContext";
 import AddTaskButton from "./AddTaskButton";
 import TaskCard from "./TaskCard";
 
 export default function KanbanColumn({ column, tasks, onTaskClick }) {
+  const { user } = useAuth();
   const { setNodeRef, isOver } = useDroppable({ id: `col-${column.id}` });
 
   async function handleAddTask(title) {
-    // Don't dispatch locally — the WS broadcast from the server handles the update
-    await api.createTask({ title, column_id: column.id });
+    // New tasks are assigned to their creator by default.
+    // Don't dispatch locally — the WS broadcast from the server handles the board update.
+    const task = await api.createTask({
+      title,
+      column_id: column.id,
+      assigned_to: user?.id ?? null,
+    });
+    // Open the task immediately so the user can fill in details.
+    onTaskClick?.(task);
   }
 
   return (
