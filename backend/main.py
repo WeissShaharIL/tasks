@@ -16,6 +16,7 @@ from routers import properties as properties_router
 from routers import users as users_router
 from routers import ws as ws_router
 from routers import attachments as attachments_router
+from routers import push as push_router
 
 UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "./uploads")).resolve()
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -57,6 +58,7 @@ app.include_router(tasks_router.router, prefix="/api/tasks", tags=["tasks"])
 app.include_router(attachments_router.router, prefix="/api", tags=["attachments"])
 app.include_router(properties_router.router, prefix="/api/admin/property-defs", tags=["property-defs"])
 app.include_router(users_router.router, prefix="/api/admin/users", tags=["admin-users"])
+app.include_router(push_router.router, prefix="/api/push", tags=["push"])
 app.include_router(ws_router.router, prefix="/api", tags=["ws"])
 
 

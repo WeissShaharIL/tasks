@@ -92,6 +92,14 @@ JWT in **httpOnly cookie `tasks_token`** (7-day TTL, HS256). `is_admin` in the p
 - `task_property_defs` — admin custom field defs: name, field_type (`text|select|date|user|number`), options_json (JSON array string for selects), is_required, position.
 - `task_property_values` — per-task field values, `UNIQUE(task_id, prop_def_id)`, cascade-delete with task.
 - `task_attachments` — task_id (FK CASCADE), file_name, file_path (`/uploads/tasks/{id}/{uuid}.ext`), file_type, file_size, uploaded_by.
+- `push_subscriptions` — user_id (FK CASCADE), endpoint (unique), p256dh, auth. Web Push subscriptions per device.
+
+### Web Push notifications
+VAPID-based Web Push (works when app is closed). Keys in env: `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` (base64url raw EC P-256), `VAPID_SUBJECT` (mailto:). If keys absent, push is a no-op (app still runs). Generate keys once: `docker exec tasks-backend-1 python -c "import push_service; push_service.print_new_keys()"` → paste the two lines into server `.env` → redeploy.
+- `backend/push_service.py` — `send_to_user(user_id, payload)` opens its OWN DB session (called via `asyncio.to_thread` from async routes since pywebpush is sync). Prunes dead subs on 404/410.
+- `routers/push.py` — `GET /push/vapid-public-key`, `POST /push/subscribe` (body = `PushSubscription.toJSON()`), `POST /push/unsubscribe`.
+- Trigger: `routers/tasks.py _notify_assignee()` fires when a task is assigned to someone **other than the actor** (on create with a different assignee, or on update when assignee changes). Self-assignment (the default on create) does NOT notify.
+- Frontend: `hooks/usePushNotifications.js` (subscribe/unsubscribe via `pushManager`), toggle button in `AppHeader` ("הפעל התראות" / "התראות פעילות"). Service worker push/notificationclick handlers live in `public/push-sw.js`, pulled into the generated Workbox SW via `workbox.importScripts: ["push-sw.js"]` in `vite.config.js` (kept generateSW mode — did NOT switch to injectManifest).
 
 ### Position / reorder logic (`routers/tasks.py`)
 Tasks use float positions. `POST /tasks/{id}/move` sets position to a value computed client-side (midpoint of neighbors, or last+1). The frontend `KanbanBoard.jsx` computes the midpoint; backend just stores it. `_renumber_column` exists as a helper if positions ever collapse.

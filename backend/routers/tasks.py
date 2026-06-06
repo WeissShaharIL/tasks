@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,8 +11,22 @@ from schemas import (
     PropertyValueIn, PropertyValueOut, TaskCreate, TaskMove, TaskOut, TaskUpdate,
 )
 from ws_manager import manager
+import push_service
 
 router = APIRouter()
+
+
+async def _notify_assignee(assignee_id, actor: User, title: str):
+    """Push a notification to the assignee, unless they assigned it to themselves.
+    Runs the (sync) webpush in a thread so the event loop isn't blocked."""
+    if not assignee_id or assignee_id == actor.id:
+        return
+    payload = {
+        "title": "הוקצתה לך משימה",
+        "body": title,
+        "url": "/",
+    }
+    await asyncio.to_thread(push_service.send_to_user, assignee_id, payload)
 
 
 def _task_out(task: Task, db: Session) -> dict:
@@ -104,6 +119,7 @@ async def create_task(
         "ts": datetime.now(timezone.utc).isoformat(),
         "data": _task_out(task, db),
     })
+    await _notify_assignee(task.assigned_to, actor, task.title)
     return TaskOut(
         id=task.id,
         title=task.title,
@@ -148,6 +164,7 @@ async def update_task(
     task = db.get(Task, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="משימה לא נמצאה")
+    prev_assignee = task.assigned_to
     if body.title is not None:
         task.title = body.title
     if body.description is not None:
@@ -165,6 +182,9 @@ async def update_task(
         "ts": datetime.now(timezone.utc).isoformat(),
         "data": _task_out(task, db),
     })
+    # Notify only if the assignee actually changed to someone new
+    if task.assigned_to and task.assigned_to != prev_assignee:
+        await _notify_assignee(task.assigned_to, actor, task.title)
 
     props = db.query(TaskPropertyValue).filter(TaskPropertyValue.task_id == task_id).all()
     return TaskOut(

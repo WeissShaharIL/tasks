@@ -24,6 +24,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Pull in our custom push / notificationclick handlers
+        importScripts: ["push-sw.js"],
         navigateFallback: "/index.html",
         // Don't intercept navigation to /uploads/ — those are real files served by
         // nginx. Without this, the service worker serves index.html for image URLs,

@@ -29,6 +29,11 @@ export const api = {
   changePassword: (current_password, new_password) =>
     request("POST", "/auth/change-password", { current_password, new_password }),
 
+  // Push notifications
+  pushVapidKey: () => request("GET", "/push/vapid-public-key"),
+  pushSubscribe: (sub) => request("POST", "/push/subscribe", sub),
+  pushUnsubscribe: (endpoint) => request("POST", "/push/unsubscribe", { endpoint }),
+
   // Board
   board: () => request("GET", "/board"),
 
